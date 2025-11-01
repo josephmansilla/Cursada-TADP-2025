@@ -69,6 +69,10 @@ object Pociones {
   val esAntidoto: (Pocion, Pocion, Persona) => Boolean =
     (po1,po2,persona) => tomarPocion(po2, tomarPocion(po1, persona)) == persona
 
-  val esAntidoto2: (Pocion, Pocion, Persona) => Boolean =
+  val esAntidoto2: (Pocion, Pocion, Persona) => Boolean = {
     (po1,po2,persona) => po1.andThen(po2)(persona) == persona
+
+    val personaMasAfectada: (Pocion, Niveles => Int, List[Persona]) => Persona =
+      (po, cirterio, personas) => personas.maxBy(po.andThen(_.niveles).andThen(cirterio))
+  }
 }
