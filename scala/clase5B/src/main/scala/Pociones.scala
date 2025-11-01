@@ -16,6 +16,8 @@ object Pociones {
     case n => n.copy(fuerza = n.fuerza - 3)
   }
 
+  def sumarLista(l: List[Int]) = l.reduce(_ + _) //l.sum
+
   val if1: Efecto = n => n.copy(suerte = n.suerte -1, n.convencimiento - 2, n.fuerza - 3)
   val if3: Efecto = {
     case Niveles(s,c,f)
@@ -64,15 +66,25 @@ object Pociones {
     // case pocion if pocion.esHeavy => pocion.nombre
   } // _.filter(_.esHeavy).map(_.nombre)
 
+  val vocales = "aeiou"
+  val esPocionMagica: Pocion => Boolean = pocion =>
+    pocion.ingredientes.exists(i => vocales.forall(i.nombre.contains(_))) &&
+      pocion.ingredientes.forall(i=>i.cantidadEnGramos % 2 == 0)
+
+
   val tomarPocion: (Pocion, Persona) => Persona = efectosDePocion(_).foldLeft(_)(_.aplicaEfecto(_))
   // QUE HERMOSO QUE ES FUNCIONAL NO SE ENTIENDE NADA PERO ES HERMOSOOOOOOOOOOOOO
+
+  val tomarPocion2: (Pocion, Persona) => Persona =
+    (pocion, persona) => persona.aplicaEfecto((efectosDePocion(pocion).reduce((f,g) => f.andThen(g))))
+
   val esAntidoto: (Pocion, Pocion, Persona) => Boolean =
     (po1,po2,persona) => tomarPocion(po2, tomarPocion(po1, persona)) == persona
 
-  val esAntidoto2: (Pocion, Pocion, Persona) => Boolean = {
-    (po1,po2,persona) => po1.andThen(po2)(persona) == persona
+  val esAntidoto2: (Pocion, Pocion, Persona) => Boolean = (po1, po2, persona) => po1.andThen(po2)(persona) == persona
 
-    val personaMasAfectada: (Pocion, Niveles => Int, List[Persona]) => Persona =
-      (po, cirterio, personas) => personas.maxBy(po.andThen(_.niveles).andThen(cirterio))
-  }
+  val personaMasAfectada: (Pocion, Niveles => Int, List[Persona]) => Persona = (po, criterio, personas)
+    => personas.maxBy {
+      po.andThen(_.niveles).andThen(criterio)
+    }
 }
