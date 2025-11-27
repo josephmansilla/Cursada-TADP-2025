@@ -24,7 +24,7 @@ case class Stats (fuerza:Int, velocidad: Int, energiaMaxima: Int) {
 case class Pokemon (experiencia: Int, stats: Stats, especie: Especie, energia: Int, estado: Estado) {
   def resestablecerEnergia(): Pokemon = this.copy(energia=stats.energiaMaxima)
   def ganaExperiencia(cantidad:Int):Pokemon = this.copy(experiencia = experiencia + cantidad)
-  def cambiarEnergia(cantidad:Int):Pokemon = this.copy(energia = energia + cantidad)
+  def cambiarEnergia(cantidad:Int):Pokemon = this.copy(energia = (energia + cantidad).max(0).min(100))
   def cambiarVelocidad(cantidad: Int):Pokemon = this.copy(stats= this.stats.copy(velocidad = this.stats.velocidad + cantidad.min(100)))
 
   lazy val energiaMaxima: Int = stats.energiaMaxima
@@ -48,18 +48,22 @@ case class Pokemon (experiencia: Int, stats: Stats, especie: Especie, energia: I
       if (d.turnos > 1) then Failure(CustomException("Sigue dormido", this.cambiaEstado(Dormido(d.turnos - 1))))
       else Success(this.cambiaEstado(Sano))
     case Paralizado => Success(this.cambiarEnergia(-10).cambiaEstado(Sano))
-    case Sano => actividad(this)
+    case Sano => actividad(this).map(_.intentarEvolucionar(this))
   }
+  def cambiarEvolucion(evolucion: Especie): Pokemon = copy(especie=evolucion)
+  def intentarEvolucionar(pokemon: Pokemon): Pokemon = especie.condicionEvolutiva.foldLeft(pokemon)((p, ev) => ev.evolucinar(p))
 }
 
-case class Especie(tipoPrincipal: Tipo, tipoSecundario: Option[Tipo], multiplicador: Stats, resistenciaEvolutiva: Int, condicionEvolutiva: Option[List[Evolucion]]) {
-  def esTipo(tipo: Tipo): Boolean = {
-    esTipoPrincipal(tipo) || esTipoSecundario(tipo)
-  }
+case class Especie(tipoPrincipal: Tipo, tipoSecundario: Option[Tipo], multiplicador: Stats, resistenciaEvolutiva: Int,
+                   condicionEvolutiva: Option[List[Evolucion]]) {
+  def esTipo(tipo: Tipo): Boolean = esTipoPrincipal(tipo) || esTipoSecundario(tipo)
   def esTipoPrincipal(tipo: Tipo): Boolean = tipoPrincipal == tipo
   def esTipoSecundario(tipo:Tipo): Boolean = tipoSecundario.contains(tipo)
   def esDebil(t:Tipo):Boolean = tipoPrincipal.esDebil(t) || tipoSecundario.exists(_.esDebil(t))
 }
 
+type CondicionEvolutiva = Pokemon => Boolean
+sealed trait Evolucion(especie:Especie, condicion: CondicionEvolutiva) {
+  def evolucionar(pokemon:Pokemon): Option[Pokemon] = if(condicion(pokemon)) Some (pokemon.cambiarEvolucion(especie)) else None
+}
 
-sealed trait Evolucion {}
