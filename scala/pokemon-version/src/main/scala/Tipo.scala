@@ -58,3 +58,22 @@ case class CustomException(message:String, p:Pokemon) extends Exception{}
 
 
 type Rutina = List[Actividad]
+
+sealed trait CriterioRutina {
+  def apply(rutinas:List[Rutina], pokemon:Pokemon): Option[Rutina]
+}
+case object MayorNivel extends CriterioRutina {
+  override def apply(rutinas:List[Rutina], pokemon:Pokemon): Option[Rutina] = {
+    Some(rutinas.maxBy(_.foldLeft(pokemon)((p, ac) => ac(p).getOrElse(p)).nivel))
+  }
+}
+case object MayorEnergia extends CriterioRutina {
+  override def apply(rutinas: List[Rutina], pokemon: Pokemon): Option[Rutina] = {
+    Some(rutinas.maxBy(_.foldLeft(pokemon)((p, ac) => ac(p).getOrElse(p)).energia))
+  }
+}
+case object MasExtensa extends CriterioRutina {
+  override def apply(rutinas:List[Rutina], pokemon:Pokemon): Option[Rutina] = {
+    Some(rutinas.maxBy(r => if(r.foldLeft(pokemon)((p, ac) => ac(p).getOrElse(p)).energia >= 0.5 * pokemon.energiaMaxima) then Some(r.length) else None))
+  }
+}

@@ -31,7 +31,7 @@ case class Pokemon (experiencia: Int, stats: Stats, especie: Especie, energia: I
   lazy val nivel: Int = {
     @tailrec
     def nivelR(experienciaParaNivel: Int, nivel: Int): Int = {
-      val experienciaParaProximoNivel = (2^nivel-1) * especie.resistenciaEvolutiva
+      val experienciaParaProximoNivel = math.pow(2, nivel - 1).toInt * especie.resistenciaEvolutiva
       if (experienciaParaProximoNivel > experiencia) then nivel
       else nivelR(experienciaParaNivel, nivel + 1)
     }
@@ -66,4 +66,3 @@ type CondicionEvolutiva = Pokemon => Boolean
 case class Evolucion(especie:Especie, condicion: CondicionEvolutiva) {
   def apply(pokemon:Pokemon): Option[Pokemon] = if(condicion(pokemon)) Some (pokemon.cambiarEvolucion(especie)) else None
 }
-
