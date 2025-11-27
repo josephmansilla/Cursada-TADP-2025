@@ -55,3 +55,6 @@ case class LevantarPesas(kg:Int) extends Actividad {
   }
 }
 case class CustomException(message:String, p:Pokemon) extends Exception{}
+
+
+type Rutina = List[Actividad]

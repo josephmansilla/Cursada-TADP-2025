@@ -51,7 +51,7 @@ case class Pokemon (experiencia: Int, stats: Stats, especie: Especie, energia: I
     case Sano => actividad(this).map(_.intentarEvolucionar(this))
   }
   def cambiarEvolucion(evolucion: Especie): Pokemon = copy(especie=evolucion)
-  def intentarEvolucionar(pokemon: Pokemon): Pokemon = especie.condicionEvolutiva.foldLeft(pokemon)((p, ev) => ev.evolucinar(p))
+  def intentarEvolucionar(pokemon: Pokemon): Pokemon = especie.condicionEvolutiva.getOrElse(Nil).foldLeft(pokemon)((p, ev) => ev(p).getOrElse(p))
 }
 
 case class Especie(tipoPrincipal: Tipo, tipoSecundario: Option[Tipo], multiplicador: Stats, resistenciaEvolutiva: Int,
@@ -63,7 +63,7 @@ case class Especie(tipoPrincipal: Tipo, tipoSecundario: Option[Tipo], multiplica
 }
 
 type CondicionEvolutiva = Pokemon => Boolean
-sealed trait Evolucion(especie:Especie, condicion: CondicionEvolutiva) {
-  def evolucionar(pokemon:Pokemon): Option[Pokemon] = if(condicion(pokemon)) Some (pokemon.cambiarEvolucion(especie)) else None
+case class Evolucion(especie:Especie, condicion: CondicionEvolutiva) {
+  def apply(pokemon:Pokemon): Option[Pokemon] = if(condicion(pokemon)) Some (pokemon.cambiarEvolucion(especie)) else None
 }
 
