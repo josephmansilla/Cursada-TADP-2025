@@ -4,17 +4,16 @@ sealed trait Tipo {
   def unapply(pokemon: Pokemon): Option[(Boolean, Boolean)] = {
     val especie = pokemon.especie
     if especie.esTipo(this) then
-      Some(especie.esTipoPrincipal(this),
-        especie.esTipoSecundario(this))
+      Some(especie.esTipoPrincipal(this), especie.esTipoSecundario(this))
     else None
   }
-  def esDebil(tipo:Tipo): Boolean = false
+  def esDebil(tipo: Tipo): Boolean = false
 }
 case object Agua extends Tipo
 case object Pelea extends Tipo
 case object Fantasma extends Tipo
 case object Fuego extends Tipo {
-  override def esDebil(t:Tipo):Boolean = t == Agua
+  override def esDebil(t: Tipo): Boolean = t == Agua
 }
 
 sealed trait Estado {}
@@ -26,15 +25,15 @@ case object KO extends Estado
 type Actividad = Pokemon => Try[Pokemon]
 
 case object Descansar extends Actividad {
-  override def apply(p:Pokemon):Try[Pokemon] = {
-    p.resestablecerEnergia()
-    if (p.energia < p.energiaMaxima * 0.5) then Failure(CustomException("Quedó dormido", p.cambiaEstado(Dormido(3))))
-    else Success(p)
+  override def apply(p: Pokemon): Try[Pokemon] = {
+    val pokemonDescansado = p.resestablecerEnergia()
+    if (p.energia < p.energiaMaxima * 0.5) then Failure(CustomException("Quedo dormido", pokemonDescansado.cambiaEstado(Dormido(3))))
+    else Success(pokemonDescansado)
   }
 }
-case class Nadar(minutos:Int) extends Actividad {
-  override def apply(p:Pokemon):Try[Pokemon] = {
-    if (p.esDebil(Agua)) Failure(CustomException("Quedó KO",p.cambiaEstado(KO)))
+case class Nadar(minutos: Int) extends Actividad {
+  override def apply(p: Pokemon): Try[Pokemon] = {
+    if (p.esDebil(Agua)) Failure(CustomException("Quedo KO",p.cambiaEstado(KO)))
     val pokemon = p
       .ganaExperiencia(20 * minutos)
       .cambiarEnergia(-minutos)
@@ -43,37 +42,43 @@ case class Nadar(minutos:Int) extends Actividad {
     else Success(pokemon)
   }
 }
-case class LevantarPesas(kg:Int) extends Actividad {
-  override def apply(p:Pokemon):Try[Pokemon] = p match {
-    case Fantasma(_,_) => Success(p)
-    case _ if (p.estado == Paralizado) => Failure(CustomException("Quedó KO", p.cambiaEstado(KO))) // no me gusta pero bue
-    case _ if (kg>10) => Failure(CustomException("Quedó Paralizado", p.cambiarEnergia(-10).cambiaEstado(Paralizado)))
+case class LevantarPesas(kg: Int) extends Actividad {
+  override def apply(p: Pokemon): Try[Pokemon] = p match {
+    case Fantasma(_, _) => Failure(CustomException("No puede levantar pesas", p))
+    case _ if p.estado == Paralizado => Failure(CustomException("Quedo KO", p.cambiaEstado(KO)))
+    case _ if kg > 10 => Failure(CustomException("Quedo Paralizado", p.cambiarEnergia(-10).cambiaEstado(Paralizado)))
     case _ =>
-      var delta = 1
-      if(p.especie.esTipoPrincipal(Pelea)) then Success(delta * 2)
-      Success(p.ganaExperiencia(delta * kg))
+      val experienciaGanada = if p.especie.esTipoPrincipal(Pelea) then kg * 2 else kg
+      Success(p.ganaExperiencia(experienciaGanada))
   }
 }
-case class CustomException(message:String, p:Pokemon) extends Exception{}
-
+case class CustomException(message: String, p: Pokemon) extends Exception {}
 
 type Rutina = List[Actividad]
 
+def realizarRutina(pokemon: Pokemon, rutina: Rutina): Try[Pokemon] = pokemon.hacerActividades(rutina)
+
 sealed trait CriterioRutina {
-  def apply(rutinas:List[Rutina], pokemon:Pokemon): Option[Rutina]
+  protected def rutinasEjecutables(rutinas: List[Rutina], pokemon: Pokemon): List[(Rutina, Pokemon)] =
+    rutinas.flatMap(r => pokemon.hacerActividades(r).toOption.map(r -> _))
+
+  def apply(rutinas: List[Rutina], pokemon: Pokemon): Option[Rutina]
 }
 case object MayorNivel extends CriterioRutina {
-  override def apply(rutinas:List[Rutina], pokemon:Pokemon): Option[Rutina] = {
-    Some(rutinas.maxBy(_.foldLeft(pokemon)((p, ac) => ac(p).getOrElse(p)).nivel))
+  override def apply(rutinas: List[Rutina], pokemon: Pokemon): Option[Rutina] = {
+    rutinasEjecutables(rutinas, pokemon).maxByOption(_._2.nivel).map(_._1)
   }
 }
 case object MayorEnergia extends CriterioRutina {
   override def apply(rutinas: List[Rutina], pokemon: Pokemon): Option[Rutina] = {
-    Some(rutinas.maxBy(_.foldLeft(pokemon)((p, ac) => ac(p).getOrElse(p)).energia))
+    rutinasEjecutables(rutinas, pokemon).maxByOption(_._2.energia).map(_._1)
   }
 }
 case object MasExtensa extends CriterioRutina {
-  override def apply(rutinas:List[Rutina], pokemon:Pokemon): Option[Rutina] = {
-    Some(rutinas.maxBy(r => if(r.foldLeft(pokemon)((p, ac) => ac(p).getOrElse(p)).energia >= 0.5 * pokemon.energiaMaxima) then Some(r.length) else None))
+  override def apply(rutinas: List[Rutina], pokemon: Pokemon): Option[Rutina] = {
+    val candidatas = rutinasEjecutables(rutinas, pokemon).filter { case (_, resultado) =>
+      resultado.energia * 2 >= resultado.energiaMaxima
+    }
+    candidatas.maxByOption(_._1.length).map(_._1)
   }
 }
