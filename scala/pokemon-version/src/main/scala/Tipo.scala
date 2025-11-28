@@ -33,7 +33,7 @@ case object Descansar extends Actividad {
 }
 case class Nadar(minutos: Int) extends Actividad {
   override def apply(p: Pokemon): Try[Pokemon] = {
-    if (p.esDebil(Agua)) Failure(CustomException("Quedo KO",p.cambiaEstado(KO)))
+    if (p.esDebil(Agua)) return Failure(CustomException("Quedo KO",p.cambiaEstado(KO)))
     val pokemon = p
       .ganaExperiencia(20 * minutos)
       .cambiarEnergia(-minutos)
