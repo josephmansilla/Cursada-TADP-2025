@@ -1,4 +1,5 @@
 require_relative "../lib/Document"
+require_relative '../nuevas_anotaciones'
 
 ###################################
 #
@@ -97,5 +98,50 @@ otroAlumno = Alumno.new("Matias","123456-8a", 1234567890, otroEstado)
 
 documento_annotations = Document.serialize(otroAlumno)
 puts documento_annotations.xml
-#
-###################################
+
+
+class AlumnoConNuevasAnotaciones
+  ✨Validate✨ { |nombre| nombre.is_a?(String) && !nombre.strip.empty? }
+  attr_accessor :nombre
+
+  ✨Mask✨(visible: 3)
+  attr_accessor :legajo
+
+  ✨Default✨("S/T")
+  attr_accessor :telefono
+
+  ✨Mask✨(visible: 4)
+  attr_accessor :dni
+
+  attr_accessor :estado
+
+  def initialize(nombre, legajo, telefono, dni, estado)
+    @nombre = nombre
+    @legajo = legajo
+    @telefono = telefono
+    @dni = dni
+    @estado = estado
+  end
+end
+
+class EstadoConNuevasAnotaciones
+  ✨Validate✨ { |v| v.is_a?(Integer) && v >= 0 }
+  attr_accessor :finales_rendidos
+
+  ✨Validate✨ { |v| v.is_a?(Integer) && v >= 0 }
+  attr_accessor :materias_aprobadas
+
+  attr_accessor :es_regular
+
+  def initialize(finales, materias, es_regular)
+    @finales_rendidos = finales
+    @materias_aprobadas = materias
+    @es_regular = es_regular
+  end
+end
+
+estado_nuevas = EstadoConNuevasAnotaciones.new(4, 7, true)
+alumno_nuevas = AlumnoConNuevasAnotaciones.new("Valentina", 987654, nil, "35123456", estado_nuevas)
+
+documento_nuevas_anotaciones = Document.serialize(alumno_nuevas)
+puts documento_nuevas_anotaciones.xml
