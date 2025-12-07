@@ -252,3 +252,21 @@ class Extra < Annotation
     clase
   end
 end
+
+class Expand < Annotation
+  attr_accessor :block
+  def initialize(&block)
+    @block = block
+  end
+
+  def apply(_, clave, valor)
+    raise(InvalidAnnotation, "No puede ser aplicada a una clase") if clave.nil? || valor.nil?
+    raise(InvalidAnnotation, "Bloque vacío") if @block.nil?
+
+    expandido = instance_exec(valor, &@block)
+
+    {key: clave, value: expandido}
+
+  end
+
+end
